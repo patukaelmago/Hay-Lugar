@@ -1,26 +1,23 @@
 # Hay Lugar
 
-Sistema SaaS de reservas. Primer restaurante: Pulpo Sushi.
+Entrada inicial con Firebase Authentication y Google. Pulpo Sushi es un tenant de Hay Lugar.
 
-## Alcance inicial acordado
+## Desarrollo
 
-- Página principal para presentar Hay Lugar.
-- Enlace de reservas independiente por restaurante.
-- Capacidad máxima configurable por restaurante y turno.
-- Uno o varios turnos configurables.
-- Reservas según cantidad de personas y cupo disponible.
-- Administrador para registrar también reservas telefónicas y organizar las mesas según los grupos.
-- Distribución flexible del salón, con opciones para dividir, unir o reemplazar mesas.
-- Datos y permisos separados por restaurante.
+Servir `public/` con un servidor HTTP. El dominio de desarrollo debe estar autorizado en Firebase Authentication. La página utiliza módulos del SDK oficial de Firebase 12.19.0 y no requiere compilación.
 
-## Backend previsto
+## Publicación
 
-Firebase Authentication para acceso y Firestore para datos. Las reservas deberán validar y descontar cupos de forma atómica para evitar sobreventas cuando dos clientes reserven al mismo tiempo. La confirmación automática o manual queda por definir.
-
-## Pendiente de confirmar con Pulpo
-
-Capacidad real, horarios, cantidad de turnos, reglas de distribución de mesas y política de confirmación/cancelación.
+Con Firebase CLI autenticada: `firebase deploy --only hosting --project hay-lugar-1346d`.
 
 ## Estado
 
-Repositorio inicializado. Todavía no hay una aplicación implementada ni conexión a Firebase. El dominio ya está comprado; su conexión se realizará en un paso posterior.
+- Home responsive con acceso Google, persistencia de sesión y cierre de sesión.
+- Proyecto Firebase: hay-lugar-1346d.
+- Los roles y permisos de los tenants todavía no están implementados. Iniciar sesión no concede acceso a datos.
+- Las reglas actuales de Firestore deniegan las lecturas y escrituras desde clientes.
+- Esta entrega no publica el sitio ni implementa el panel de reservas.
+
+## Verificación
+
+JavaScript validado con `node --check`. El flujo OAuth completo se debe verificar en el dominio publicado y autorizado.
