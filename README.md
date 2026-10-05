@@ -1,23 +1,21 @@
 # Hay Lugar
 
-Entrada inicial con Firebase Authentication y Google. Pulpo Sushi es un tenant de Hay Lugar.
+Sistema SaaS de reservas. Pulpo Sushi es el primer tenant.
+
+## Entrada inicial
+
+Home responsive con Google Auth, sesión persistente y cierre de sesión. Proyecto Firebase: `hay-lugar-1346d`. El panel de administración, los roles y la lógica de reservas todavía están pendientes; iniciar sesión no concede acceso a datos de Firestore.
 
 ## Desarrollo
 
-Servir `public/` con un servidor HTTP. El dominio de desarrollo debe estar autorizado en Firebase Authentication. La página utiliza módulos del SDK oficial de Firebase 12.19.0 y no requiere compilación.
+Node 24. Ejecutar `npm ci`, `npm run dev`. Para verificar producción: `npm run build` y `npm start`.
 
 ## Publicación
 
-Con Firebase CLI autenticada: `firebase deploy --only hosting --project hay-lugar-1346d`.
+Firebase App Hosting está conectado al repositorio y publica desde `main`, con raíz `/`. La app usa Next.js y genera el home durante la compilación. El HTML de la pantalla y el módulo de autenticación se mantienen en `public/index.html`.
 
-## Estado
-
-- Home responsive con acceso Google, persistencia de sesión y cierre de sesión.
-- Proyecto Firebase: hay-lugar-1346d.
-- Los roles y permisos de los tenants todavía no están implementados. Iniciar sesión no concede acceso a datos.
-- Las reglas actuales de Firestore deniegan las lecturas y escrituras desde clientes.
-- Esta entrega no publica el sitio ni implementa el panel de reservas.
+El dominio publicado debe estar autorizado en Firebase Authentication para permitir el acceso con Google. No hay cambios a las reglas de Firestore en esta entrega.
 
 ## Verificación
 
-JavaScript validado con `node --check`. El flujo OAuth completo se debe verificar en el dominio publicado y autorizado.
+`npm run build` pasa. El flujo OAuth se verifica por separado en el dominio publicado.
