@@ -19,3 +19,13 @@ El dominio publicado debe estar autorizado en Firebase Authentication para permi
 ## Verificación
 
 `npm run build` pasa. El flujo OAuth se verifica por separado en el dominio publicado.
+
+## Disponibilidad por tenant
+
+Panel privado `/admin/pulpo` con dos modalidades: cupos por horario o mesas con capacidad y sector. Conserva la configuración de ambas al cambiar de modalidad. Admite horarios semanales, fechas específicas, duración de la reserva y cierres por fecha. No habilita todavía la toma pública de reservas.
+
+El servidor valida el token de Google y el correo verificado. `patriciouskaer@gmail.com` tiene acceso como superadmin; los demás administradores deben estar incluidos en `allowedEmails` del documento `tenants/{tenantId}`. La lista no se puede modificar desde el cliente. No hay credenciales de servicio en el repositorio: Firebase Admin usa las credenciales automáticas de App Hosting.
+
+La configuración se guarda en `tenants/{tenantId}/settings/availability`. El endpoint valida los datos y usa transacciones con revisión para evitar sobrescribir cambios de otra sesión. Firestore debe estar creado en `hay-lugar-1346d` y accesible por la cuenta de servicio de App Hosting. Los datos se leen y escriben únicamente desde la API autorizada; no se requieren reglas públicas para este panel.
+
+Verificación: `npm test`, `npm run build`. El guardado con Google se verifica en el dominio publicado, porque requiere las credenciales de servicio de Firebase.
