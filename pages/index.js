@@ -3,7 +3,8 @@ import Script from 'next/script';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import logo from '../public/logo.jpg';
-import favicon from '../public/favicon.jpg';
+import favicon from '../public/favicon-square.png';
+import appleIcon from '../public/apple-touch-icon.png';
 
 export async function getStaticProps() {
   const html = await readFile(path.join(process.cwd(), 'public/index.html'), 'utf8');
@@ -16,8 +17,8 @@ export async function getStaticProps() {
 export default function Home({ styles, loginScript, markup }) {
   return <>
     <Head>
-      <link rel="icon" type="image/jpeg" href={favicon.src} />
-      <link rel="apple-touch-icon" href={favicon.src} />
+      <link rel="icon" type="image/png" sizes="64x64" href={favicon.src} />
+      <link rel="apple-touch-icon" href={appleIcon.src} />
       <title>Ingresar · Hay Lugar</title>
       <meta name="viewport" content="width=device-width, initial-scale=1" />
       <meta name="theme-color" content="#faf6eb" />
