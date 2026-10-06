@@ -98,7 +98,7 @@ export default function Admin({ tenantId }) {
     <div className="admin">
       <header><a className="brand" href="/"><img src={logo.src} alt="Hay Lugar" /></a><div><small>ADMINISTRACIÓN</small><strong>{tenantName}</strong></div>{user && <button type="button" className="secondary logout" onClick={logout}>Cerrar sesión</button>}</header>
       <main>
-        <h1>Disponibilidad</h1><p className="intro">Definí cómo reservar, los lugares disponibles y los horarios de atención.</p>
+        <nav style={{ display: 'flex', gap: 20, flexWrap: 'wrap', marginBottom: 20 }}><a href={`/admin/${tenantId}/reservas`}>Reservas</a><a href={`/reservar/${tenantId}`} target="_blank" rel="noopener noreferrer">Link público de reserva ↗</a></nav><h1>Disponibilidad</h1><p className="intro">Definí cómo reservar, los lugares disponibles y los horarios de atención.</p>
         {loading ? <p role="status">Cargando tu panel…</p> : !user ? <section className="box"><h2>Ingresá para continuar</h2><button type="button" onClick={login} disabled={!clientReady || connecting}>{connecting ? 'Conectando…' : 'Ingresar con Google'}</button>{error && <p className="error" role="alert">{error}</p>}{!clientReady && error && <a href={`/admin/${tenantId}`}>Recargar acceso</a>}</section> : !authorized ? <section className="box"><p role="alert">{error}</p><button onClick={() => load(user)}>Volver a intentar</button></section> : <form onSubmit={save}>
           <fieldset disabled={saving}>
             <section className="box"><h2>Modalidad de reserva</h2><div className="modes">

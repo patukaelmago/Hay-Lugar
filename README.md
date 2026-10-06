@@ -22,10 +22,19 @@ El dominio publicado debe estar autorizado en Firebase Authentication para permi
 
 ## Disponibilidad por tenant
 
-Panel privado `/admin/pulpo` con dos modalidades: cupos por horario o mesas con capacidad y sector. Conserva la configuración de ambas al cambiar de modalidad. Admite horarios semanales, fechas específicas, duración de la reserva y cierres por fecha. No habilita todavía la toma pública de reservas.
+Panel privado `/admin/pulpo` con dos modalidades: cupos por horario o mesas con capacidad y sector. Conserva la configuración de ambas al cambiar de modalidad. Admite horarios semanales, fechas específicas, duración de la reserva y cierres por fecha. El link público de reserva es `/reservar/{tenantId}`.
 
 El servidor valida el token de Google y el correo verificado. `patriciouskaer@gmail.com` tiene acceso como superadmin; los demás administradores deben estar incluidos en `allowedEmails` del documento `tenants/{tenantId}`. La lista no se puede modificar desde el cliente. No hay credenciales de servicio en el repositorio: Firebase Admin usa las credenciales automáticas de App Hosting.
 
 La configuración se guarda en `tenants/{tenantId}/settings/availability`. El endpoint valida los datos y usa transacciones con revisión para evitar sobrescribir cambios de otra sesión. Firestore debe estar creado en `hay-lugar-1346d` y accesible por la cuenta de servicio de App Hosting. Los datos se leen y escriben únicamente desde la API autorizada; no se requieren reglas públicas para este panel.
 
 Verificación: `npm test`, `npm run build`. El guardado con Google se verifica en el dominio publicado, porque requiere las credenciales de servicio de Firebase.
+
+
+## Reservas públicas
+
+El cliente elige fecha, cantidad de personas, horario y mesa (si corresponde), y deja nombre, teléfono y correo. El endpoint público devuelve solo horarios y mesas disponibles, nunca datos de otros clientes. La confirmación se muestra en pantalla; todavía no se envían correos ni WhatsApp.
+
+Las fechas especiales reemplazan los horarios semanales de ese día; los cierres tienen prioridad. La ocupación usa intervalos de duración con zona horaria argentina y comprueba también los días contiguos. Transacciones de Firestore comprueban disponibilidad al confirmar, y el identificador de solicitud permite reintentar sin duplicar la reserva. Cambiar de modalidad o eliminar mesas con reservas futuras está bloqueado; reducir cupos tampoco puede dejar reservas confirmadas por encima de la capacidad.
+
+Panel de reservas: `/admin/{tenantId}/reservas`, con consulta por fecha y cancelación que libera la ocupación. La configuración de acceso privado sigue siendo superadmin y `allowedEmails` por tenant. Las reservas no crean sesión Google para el cliente. No hay pagos, recordatorios ni lista de espera en esta entrega.
