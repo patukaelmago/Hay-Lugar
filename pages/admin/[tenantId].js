@@ -1,4 +1,7 @@
 import Head from 'next/head';
+import logo from '../../public/logo.jpg';
+import favicon from '../../public/favicon-square.png';
+import { loadFirebaseClient } from '../../lib/client';
 import { useEffect, useRef, useState } from 'react';
 import { emptyAvailability, validateAvailability } from '../../lib/availability.mjs';
 
@@ -14,6 +17,8 @@ export default function Admin({ tenantId }) {
   const [loading, setLoading] = useState(true);
   const [authorized, setAuthorized] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [connecting, setConnecting] = useState(false);
+  const [clientReady, setClientReady] = useState(false);
   const [dirty, setDirty] = useState(false);
   const [notice, setNotice] = useState('');
   const [error, setError] = useState('');
@@ -38,9 +43,9 @@ export default function Admin({ tenantId }) {
   useEffect(() => {
     let stopped = false; let unsubscribe;
     setAuthorized(false); setLoading(true);
-    import(/* webpackIgnore: true */ '/firebase-client.js').then(mod => {
+    loadFirebaseClient().then(mod => {
       if (stopped) return;
-      client.current = mod;
+      client.current = mod; setClientReady(true);
       unsubscribe = mod.onAuthStateChanged(mod.auth, currentUser => {
         if (stopped) return;
         setUser(currentUser);
@@ -70,17 +75,31 @@ export default function Admin({ tenantId }) {
     } catch (err) { setError(err.message); }
     finally { setSaving(false); }
   }
+  async function login() {
+    setConnecting(true); setError('');
+    try { await client.current.signInWithPopup(client.current.auth, client.current.provider); }
+    catch (err) {
+      if (!['auth/popup-closed-by-user', 'auth/cancelled-popup-request'].includes(err.code)) {
+        const messages = {
+          'auth/popup-blocked': 'Permití la ventana de Google en tu navegador y volvé a intentar.',
+          'auth/unauthorized-domain': 'Esta dirección todavía no está autorizada para ingresar con Google.',
+          'auth/network-request-failed': 'Revisá tu conexión y volvé a intentar.'
+        };
+        setError(messages[err.code] || 'No pudimos iniciar sesión. Volvé a intentar.');
+      }
+    } finally { setConnecting(false); }
+  }
   async function logout() {
     try { await client.current.signOut(client.current.auth); window.location.assign('/'); }
     catch { setError('No pudimos cerrar la sesión. Volvé a intentar.'); }
   }
   return <>
-    <Head><title>Disponibilidad · {tenantName} · Hay Lugar</title><meta name="robots" content="noindex,nofollow" /><link rel="icon" href="/favicon-square.png" /></Head>
+    <Head><title>Disponibilidad · {tenantName} · Hay Lugar</title><meta name="robots" content="noindex,nofollow" /><link rel="icon" href={favicon.src} /></Head>
     <div className="admin">
-      <header><a className="brand" href="/"><img src="/logo.jpg" alt="Hay Lugar" /></a><div><small>ADMINISTRACIÓN</small><strong>{tenantName}</strong></div>{user && <button type="button" className="secondary logout" onClick={logout}>Cerrar sesión</button>}</header>
+      <header><a className="brand" href="/"><img src={logo.src} alt="Hay Lugar" /></a><div><small>ADMINISTRACIÓN</small><strong>{tenantName}</strong></div>{user && <button type="button" className="secondary logout" onClick={logout}>Cerrar sesión</button>}</header>
       <main>
         <h1>Disponibilidad</h1><p className="intro">Definí cómo reservar, los lugares disponibles y los horarios de atención.</p>
-        {loading ? <p role="status">Cargando tu panel…</p> : !user ? <section className="box"><h2>Ingresá para continuar</h2><a href="/">Ingresar con Google</a></section> : !authorized ? <section className="box"><p role="alert">{error}</p><button onClick={() => load(user)}>Volver a intentar</button></section> : <form onSubmit={save}>
+        {loading ? <p role="status">Cargando tu panel…</p> : !user ? <section className="box"><h2>Ingresá para continuar</h2><button type="button" onClick={login} disabled={!clientReady || connecting}>{connecting ? 'Conectando…' : 'Ingresar con Google'}</button>{error && <p className="error" role="alert">{error}</p>}{!clientReady && error && <a href={`/admin/${tenantId}`}>Recargar acceso</a>}</section> : !authorized ? <section className="box"><p role="alert">{error}</p><button onClick={() => load(user)}>Volver a intentar</button></section> : <form onSubmit={save}>
           <fieldset disabled={saving}>
             <section className="box"><h2>Modalidad de reserva</h2><div className="modes">
               {[['capacity', 'Cupos por horario', 'Limitá la cantidad de personas para cada horario.'], ['tables', 'Mesas específicas', 'Configurá cada mesa y su capacidad.']].map(([mode, title, description]) => <label className={`mode ${availability.mode === mode ? 'selected' : ''}`} key={mode}><input type="radio" name="mode" value={mode} checked={availability.mode === mode} onChange={() => change({ mode })} /><span><strong>{title}</strong><small>{description}</small></span></label>)}
