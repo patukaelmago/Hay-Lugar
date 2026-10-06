@@ -4,6 +4,7 @@ import favicon from '../../public/favicon-square.png';
 import { loadFirebaseClient } from '../../lib/client';
 import { useEffect, useRef, useState } from 'react';
 import { emptyAvailability, validateAvailability } from '../../lib/availability.mjs';
+import { initialAvailability } from '../../lib/initial-availability.mjs';
 
 const days = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
 export function getServerSideProps({ params }) {
@@ -36,7 +37,8 @@ export default function Admin({ tenantId }) {
     setLoading(true); setError('');
     try {
       const data = await request(currentUser);
-      setAvailability(data.availability); setRevision(data.revision); setAuthorized(true); setDirty(false);
+      setAvailability(data.availability); setRevision(data.revision); setAuthorized(true); setDirty(Boolean(data.needsInitialSave));
+      setNotice(data.needsInitialSave ? 'Mesas iniciales de Pulpo precargadas. Guardá para confirmar la configuración.' : '');
     } catch (err) { setError(err.message); setAuthorized(false); }
     finally { setLoading(false); }
   }
@@ -103,10 +105,10 @@ export default function Admin({ tenantId }) {
           <fieldset disabled={saving}>
             <section className="box"><h2>Modalidad de reserva</h2><div className="modes">
               {[['capacity', 'Cupos por horario', 'Limitá la cantidad de personas para cada horario.'], ['tables', 'Mesas específicas', 'Configurá cada mesa y su capacidad.']].map(([mode, title, description]) => <label className={`mode ${availability.mode === mode ? 'selected' : ''}`} key={mode}><input type="radio" name="mode" value={mode} checked={availability.mode === mode} onChange={() => change({ mode })} /><span><strong>{title}</strong><small>{description}</small></span></label>)}
-            </div><p className="hint">Podés cambiar de modalidad conservando los datos de ambas opciones.</p></section>
-            {availability.mode === 'capacity' ? <section className="box"><h2>Cupos</h2><label className="field">Personas disponibles por horario<input type="number" min="0" max="10000" required value={availability.capacity} onChange={e => change({ capacity: Number(e.target.value) })} /></label><p className="hint">Con cupo 0, la disponibilidad queda cerrada.</p></section> : <section className="box"><div className="section-head"><h2>Mesas y sectores</h2><button type="button" className="secondary" onClick={() => change({ tables: [...availability.tables, { name: '', sector: 'Salón', seats: 2 }] })}>Agregar mesa</button></div>
+            </div><p className="hint">Podés cambiar de modalidad conservando los datos de ambas opciones.</p>{tenantId === 'pulpo' && !availability.tables.length && <button type="button" className="secondary" onClick={() => { const preset = initialAvailability(tenantId); change({ mode: preset.mode, tables: preset.tables, capacity: preset.capacity }); }}>Cargar mesas iniciales de Pulpo</button>}</section>
+            {availability.mode === 'capacity' ? <section className="box"><h2>Cupos</h2><label className="field">Personas disponibles por horario<input type="number" min="0" max="10000" required value={availability.capacity} onChange={e => change({ capacity: Number(e.target.value) })} /></label><p className="hint">Con cupo 0, la disponibilidad queda cerrada.</p></section> : <section className="box"><div className="section-head"><div><h2>Mesas y sectores</h2><p className="hint">{availability.tables.length} mesas · {availability.tables.reduce((sum, table) => sum + (Number(table.seats) || 0), 0)} lugares</p></div><button type="button" className="secondary" onClick={() => change({ tables: [...availability.tables, { name: '', sector: 'Salón', seats: 2 }] })}>Agregar mesa</button></div>
               {!availability.tables.length && <p className="hint">Agregá las mesas que podrán recibir reservas.</p>}
-              {availability.tables.map((table, i) => <div className="row" key={i}><label className="field">Nombre<input required maxLength="60" placeholder="Mesa 1" value={table.name} onChange={e => updateRow('tables', i, { name: e.target.value })} /></label><label className="field">Sector<input maxLength="60" placeholder="Salón, patio…" value={table.sector} onChange={e => updateRow('tables', i, { sector: e.target.value })} /></label><label className="field narrow">Lugares<input type="number" min="1" max="100" required value={table.seats} onChange={e => updateRow('tables', i, { seats: Number(e.target.value) })} /></label><button type="button" className="remove" aria-label={`Quitar ${table.name || 'mesa'}`} onClick={() => change({ tables: availability.tables.filter((_, index) => index !== i) })}>Quitar</button></div>)}
+              {availability.tables.map((table, i) => <div className="row" key={i}><label className="field">Nombre o número<input required maxLength="60" placeholder="Mesa 1" value={table.name} onChange={e => updateRow('tables', i, { name: e.target.value })} /></label><label className="field">Sector<input maxLength="60" placeholder="Salón, patio…" value={table.sector} onChange={e => updateRow('tables', i, { sector: e.target.value })} /></label><label className="field narrow">Lugares<input type="number" min="1" max="100" required value={table.seats} onChange={e => updateRow('tables', i, { seats: Number(e.target.value) })} /></label><button type="button" className="remove" aria-label={`Quitar ${table.name || 'mesa'}`} onClick={() => change({ tables: availability.tables.filter((_, index) => index !== i) })}>Quitar</button></div>)}
             </section>}
             <section className="box"><div className="section-head"><h2>Fechas y horarios</h2><button type="button" className="secondary" onClick={() => change({ slots: [...availability.slots, { type: 'weekly', days: [], time: '20:00', duration: 90 }] })}>Agregar horario</button></div><p className="hint">Horarios de Argentina. La duración define cuánto tiempo ocupa lugar cada reserva.</p>
               {!availability.slots.length && <p>Sin horarios configurados todavía.</p>}

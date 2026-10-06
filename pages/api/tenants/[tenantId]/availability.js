@@ -1,5 +1,6 @@
 import { authorize } from '../../../../lib/server';
-import { emptyAvailability, validateAvailability } from '../../../../lib/availability.mjs';
+import { validateAvailability } from '../../../../lib/availability.mjs';
+import { initialAvailability } from '../../../../lib/initial-availability.mjs';
 import { FieldValue } from 'firebase-admin/firestore';
 import { argentinaToday, remaining } from '../../../../lib/reservations.mjs';
 
@@ -11,7 +12,7 @@ export default async function handler(req, res) {
     const ref = db.doc(`tenants/${req.query.tenantId}/settings/availability`);
     if (req.method === 'GET') {
       const snapshot = await ref.get();
-      return res.status(200).json({ availability: snapshot.exists ? validateAvailability(snapshot.data()) : emptyAvailability(), revision: snapshot.updateTime ? `${snapshot.updateTime.seconds}:${snapshot.updateTime.nanoseconds}` : null });
+      return res.status(200).json({ availability: snapshot.exists ? validateAvailability(snapshot.data()) : initialAvailability(req.query.tenantId), needsInitialSave: !snapshot.exists && req.query.tenantId === 'pulpo', revision: snapshot.updateTime ? `${snapshot.updateTime.seconds}:${snapshot.updateTime.nanoseconds}` : null });
     }
     let availability;
     try { availability = validateAvailability(req.body?.availability); }

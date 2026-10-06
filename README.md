@@ -44,3 +44,8 @@ Panel de reservas: `/admin/{tenantId}/reservas`, con consulta por fecha y cancel
 `/admin/{tenantId}/clientes` muestra fichas por correo electrónico, contacto, contadores de reservas, historial y notas internas. Las fichas se crean al confirmar nuevas reservas; las reservas repetidas con el mismo correo comparten ficha. La creación de la reserva y la actualización de la ficha forman una sola transacción, y los reintentos no vuelven a incrementar contadores. Las cancelaciones actualizan los contadores en la misma transacción que libera la ocupación.
 
 Las notas son privadas y solo accesibles mediante la API autenticada del tenant. Una nueva reserva conserva las notas y los datos de contacto originales de la ficha. El guardado de notas tiene revisión para evitar sobreescrituras entre sesiones. La lista carga 50 clientes por página; la búsqueda por nombre, correo o teléfono se aplica a los clientes cargados. El historial muestra confirmadas y canceladas, sin inferir asistencia real. Las reservas anteriores a esta entrega siguen en el panel de reservas, pero no se migran automáticamente a fichas.
+
+
+## Distribución inicial de Pulpo
+
+Si todavía no hay configuración guardada, el panel precarga 12 mesas y 52 lugares: 1/3/7 con 8; 2/4/9/10/110 con 4; 5/6/8/120 con 2. El nombre o número y la capacidad se editan en el administrador. No se inventan sectores ni horarios. La precarga se confirma con Guardar cambios; no reemplaza configuraciones existentes. Si hay configuración guardada sin mesas, el administrador puede cargar esta distribución mediante el botón del panel, conservando sus horarios y cierres.
