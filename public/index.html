@@ -15,7 +15,7 @@
     main { display: grid; place-items: center; padding: 32px 20px 64px; }
     .card { width: min(100%, 430px); background: #faf6eb; border: 1px solid #e8dece; border-radius: 24px; padding: clamp(28px, 6vw, 44px); text-align: center; box-shadow: 0 14px 55px #281f1808; }
     .logo { display: block; width: 100%; height: auto; margin: 0 auto 28px; }
-    h1 { font-size: clamp(28px, 6vw, 34px); line-height: 1.2; letter-spacing: -1.2px; margin: 0 0 12px; }
+    h1 { font-size: clamp(28px, 6vw, 34px); line-height: 1.2; letter-spacing: -1.2px; margin: 0 0 28px; }
     .intro { color: #796b60; font-size: 15px; line-height: 1.6; margin: 0 0 32px; }
     button { width: 100%; min-height: 52px; border: 1px solid #dfd3c3; border-radius: 12px; background: #fff; color: #281f18; font: inherit; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 12px; padding: 12px 16px; transition: background .15s, border-color .15s; }
     button:hover { background: #fff0ef; border-color: #f2737a; }
@@ -36,7 +36,7 @@
     <section class="card" aria-labelledby="heading">
       <img class="logo" src="/logo.jpg" alt="Hay Lugar · Reservas online" width="1536" height="1024" fetchpriority="high">
       <h1 id="heading">Bienvenido a Hay Lugar</h1>
-      <p class="intro" id="intro">Ingresá con tu cuenta de Google.</p>
+      <p class="intro" id="intro" hidden></p>
       <button id="login" type="button" disabled>
         <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="#4285F4" d="M21.6 12.23c0-.71-.06-1.39-.18-2.05H12v3.88h5.38a4.6 4.6 0 0 1-2 3.02v2.51h3.24c1.9-1.75 2.98-4.33 2.98-7.36Z"/><path fill="#34A853" d="M12 22c2.7 0 4.96-.9 6.62-2.41l-3.24-2.51c-.9.6-2.04.97-3.38.97-2.6 0-4.82-1.76-5.61-4.12H3.04v2.6A10 10 0 0 0 12 22Z"/><path fill="#FBBC05" d="M6.39 13.93a6 6 0 0 1 0-3.86v-2.6H3.04a10 10 0 0 0 0 9.06l3.35-2.6Z"/><path fill="#EA4335" d="M12 5.95c1.47 0 2.79.51 3.82 1.5l2.86-2.86A9.56 9.56 0 0 0 12 2a10 10 0 0 0-8.96 5.47l3.35 2.6A5.98 5.98 0 0 1 12 5.95Z"/></svg>
         <span id="login-label">Ingresar con Google</span>
@@ -81,7 +81,8 @@
         document.querySelector('#session').hidden = !user;
         document.querySelector('#email').textContent = user?.email || '';
         document.querySelector('#heading').textContent = user ? 'Ya ingresaste' : 'Bienvenido a Hay Lugar';
-        document.querySelector('#intro').textContent = user ? 'Tu sesión está iniciada.' : 'Ingresá con tu cuenta de Google.';
+        document.querySelector('#intro').textContent = user ? 'Tu sesión está iniciada.' : '';
+        document.querySelector('#intro').hidden = !user;
         message(user ? 'El panel estará disponible próximamente.' : '');
         login.disabled = false;
       }, () => message('No pudimos verificar la sesión. Recargá la página.', true));
