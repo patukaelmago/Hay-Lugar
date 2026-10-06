@@ -14,9 +14,11 @@ export async function getStaticProps() {
 export default function Home({ styles, loginScript, markup }) {
   return <>
     <Head>
+      <link rel="icon" type="image/png" href="/favicon.png" />
+      <link rel="apple-touch-icon" href="/favicon.png" />
       <title>Ingresar · Hay Lugar</title>
       <meta name="viewport" content="width=device-width, initial-scale=1" />
-      <meta name="theme-color" content="#f5f4ee" />
+      <meta name="theme-color" content="#faf6eb" />
       <meta name="description" content="Ingresá a Hay Lugar con tu cuenta de Google." />
       <style dangerouslySetInnerHTML={{ __html: styles + '\n#__next { display: contents; }' }} />
     </Head>
