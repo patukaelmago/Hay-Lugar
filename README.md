@@ -4,7 +4,7 @@ Sistema SaaS de reservas. Pulpo Sushi es el primer tenant.
 
 ## Entrada inicial
 
-Home responsive con Google Auth, sesión persistente y cierre de sesión. Proyecto Firebase: `hay-lugar-1346d`. El panel de administración, los roles y la lógica de reservas todavía están pendientes; iniciar sesión no concede acceso a datos de Firestore.
+Home responsive con Google Auth, sesión persistente y cierre de sesión. Proyecto Firebase: `hay-lugar-1346d`. El acceso a los datos de cada tenant se valida en el backend; iniciar sesión no concede por sí solo permisos sobre todos los locales.
 
 ## Desarrollo
 
@@ -51,12 +51,20 @@ Las notas son privadas y solo accesibles mediante la API autenticada del tenant.
 Si todavía no hay configuración guardada, el panel precarga 12 mesas y 52 lugares: 1/3/7 con 8; 2/4/9/10/110 con 4; 5/6/8/120 con 2. El nombre o número y la capacidad se editan en el administrador. No se inventan sectores ni horarios. La precarga se confirma con Guardar cambios; no reemplaza configuraciones existentes. Si hay configuración guardada sin mesas, el administrador puede cargar esta distribución mediante el botón del panel, conservando sus horarios y cierres.
 
 
-## Guest Center por tenant
+## Dashboard por tenant
 
 Operación diaria en `/guestcenter/{tenantId}`, separada del Admin y del link público. Tiene fecha, horario, sectores, búsqueda, lista de reservas y plano de mesas. El plano inicial de Pulpo sigue la distribución aportada por el usuario; otros tenants usan su propia configuración. Posición y forma se guardan dentro de cada mesa y se editan únicamente en Admin. Nombre o número aparece dentro de la mesa y capacidad debajo.
 
 La pantalla consulta las reservas del tenant cada 30 segundos y después de cada acción. Los filtros por horario incluyen reservas que se superponen desde días contiguos. En Todo el día el plano indica mesas con reservas del día, no disponibilidad instantánea. Las reservas por cupos sin mesa se muestran en la lista.
 
-Acciones: llegó, finalizar y liberar, no asistió y cancelar (con confirmación). Llegó conserva la ocupación prevista; finalizar o marcar inasistencia libera el inventario mediante transacción. Los estados finales no se pueden reabrir y no asistió se habilita en el backend solo a partir del horario reservado. Las acciones requieren el mismo acceso privado del tenant que el Admin; todavía no se diferencian permisos de configuración y personal de salón. `/admin/{tenantId}/reservas` redirige al Guest Center para conservar enlaces anteriores.
+Acciones: llegó, finalizar y liberar, no asistió y cancelar (con confirmación). Llegó conserva la ocupación prevista; finalizar o marcar inasistencia libera el inventario mediante transacción. Los estados finales no se pueden reabrir y no asistió se habilita en el backend solo a partir del horario reservado. Las acciones requieren el mismo acceso privado del tenant que el Admin; todavía no se diferencian permisos de configuración y personal de salón. `/admin/{tenantId}/reservas` redirige al Dashboard para conservar enlaces anteriores.
 
 Esta entrega no incluye dashboard de métricas, reservas manuales sin turno ni reubicación de reservas entre mesas. Los accesos privados siguen dependiendo de Google Auth y de Firestore configurado en producción.
+
+## Horarios de operación por tenant
+
+El Admin distingue apertura/cierre del local de los horarios de llegada de las reservas. Cada regla permite nombre, activación, varios rangos (incluido cierre a 24:00), días semanales, inicio/fin de vigencia y fechas puntuales adicionales. Los cierres tienen prioridad sobre las aperturas. Estas reglas filtran los horarios de llegada tanto en la consulta pública como en la transacción de reserva. No modifican las reservas ya confirmadas.
+
+La configuración antigua conserva `operatingHours: null` y sigue funcionando hasta que el administrador configure este módulo. Una lista vacía configurada cierra las nuevas llegadas. No se precargan horarios de Picaña en Pulpo ni en otro tenant.
+
+La equivalencia completa con Woki sigue pendiente: frecuencia de repetición avanzada, sectores con múltiples layouts, turnos vinculados a layouts, combinaciones de mesas, políticas y walk-ins requieren completar la inspección de sus formularios. Esta entrega implementa únicamente los controles verificados; no afirma paridad total.
