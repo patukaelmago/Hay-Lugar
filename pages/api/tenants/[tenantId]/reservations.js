@@ -30,6 +30,7 @@ export default async function handler(req, res) {
         if (!doc.exists) throw failure('No encontramos la reserva.', 404);
         const data = doc.data();
         if (data.status === 'cancelled') return;
+        if (['completed', 'no_show'].includes(data.serviceState)) throw failure('El servicio de esta reserva ya está cerrado.', 409);
         const occupancyRef = db.doc(`tenants/${tenant}/occupancy/${data.date}`);
         const occupancy = await tx.get(occupancyRef);
         const clientRef = db.doc(`tenants/${tenant}/clients/${clientIdFor(data.email)}`);

@@ -32,7 +32,7 @@ export default async function handler(req, res) {
       if (!snapshot.exists) return res.status(404).json({ error: 'No encontramos al cliente.' });
       const history = await db.collection(`${root}/reservations`).where('email','==',snapshot.data().email).get();
       return res.status(200).json({ client: serialize(snapshot), reservations: history.docs.map(doc => {
-        const data = doc.data();return { id: doc.id, date: data.date, time: data.time, partySize: data.partySize, table: data.table, status: data.status };
+        const data = doc.data();return { id: doc.id, date: data.date, time: data.time, partySize: data.partySize, table: data.table, status: data.status, serviceState: data.serviceState || 'waiting' };
       }).sort((a,b) => `${b.date} ${b.time}`.localeCompare(`${a.date} ${a.time}`)) });
     }
     let query = db.collection(`${root}/clients`).orderBy(FieldPath.documentId()).limit(51);

@@ -49,3 +49,14 @@ Las notas son privadas y solo accesibles mediante la API autenticada del tenant.
 ## Distribución inicial de Pulpo
 
 Si todavía no hay configuración guardada, el panel precarga 12 mesas y 52 lugares: 1/3/7 con 8; 2/4/9/10/110 con 4; 5/6/8/120 con 2. El nombre o número y la capacidad se editan en el administrador. No se inventan sectores ni horarios. La precarga se confirma con Guardar cambios; no reemplaza configuraciones existentes. Si hay configuración guardada sin mesas, el administrador puede cargar esta distribución mediante el botón del panel, conservando sus horarios y cierres.
+
+
+## Guest Center por tenant
+
+Operación diaria en `/guestcenter/{tenantId}`, separada del Admin y del link público. Tiene fecha, horario, sectores, búsqueda, lista de reservas y plano de mesas. El plano inicial de Pulpo sigue la distribución aportada por el usuario; otros tenants usan su propia configuración. Posición y forma se guardan dentro de cada mesa y se editan únicamente en Admin. Nombre o número aparece dentro de la mesa y capacidad debajo.
+
+La pantalla consulta las reservas del tenant cada 30 segundos y después de cada acción. Los filtros por horario incluyen reservas que se superponen desde días contiguos. En Todo el día el plano indica mesas con reservas del día, no disponibilidad instantánea. Las reservas por cupos sin mesa se muestran en la lista.
+
+Acciones: llegó, finalizar y liberar, no asistió y cancelar (con confirmación). Llegó conserva la ocupación prevista; finalizar o marcar inasistencia libera el inventario mediante transacción. Los estados finales no se pueden reabrir y no asistió se habilita en el backend solo a partir del horario reservado. Las acciones requieren el mismo acceso privado del tenant que el Admin; todavía no se diferencian permisos de configuración y personal de salón. `/admin/{tenantId}/reservas` redirige al Guest Center para conservar enlaces anteriores.
+
+Esta entrega no incluye dashboard de métricas, reservas manuales sin turno ni reubicación de reservas entre mesas. Los accesos privados siguen dependiendo de Google Auth y de Firestore configurado en producción.
