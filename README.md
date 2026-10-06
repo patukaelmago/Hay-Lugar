@@ -68,3 +68,17 @@ El Admin distingue apertura/cierre del local de los horarios de llegada de las r
 La configuración antigua conserva `operatingHours: null` y sigue funcionando hasta que el administrador configure este módulo. Una lista vacía configurada cierra las nuevas llegadas. No se precargan horarios de Picaña en Pulpo ni en otro tenant.
 
 La equivalencia completa con Woki sigue pendiente: frecuencia de repetición avanzada, sectores con múltiples layouts, turnos vinculados a layouts, combinaciones de mesas, políticas y walk-ins requieren completar la inspección de sus formularios. Esta entrega implementa únicamente los controles verificados; no afirma paridad total.
+
+## Operación compartida por tenant
+
+El Admin (`/admin/{tenantId}/inicio`) muestra métricas de los últimos 30 días y enlaza configuración, clientes, datos del negocio y Dashboard. `/dashboard/{tenantId}` es el acceso de operación; `/guestcenter/{tenantId}` sigue disponible. El ingreso principal conduce a `/negocios`, que lista los tenants asignados a la cuenta. El superadmin puede crear un negocio con identificador único y un correo de Google autorizado; el resto de cuentas solo recibe sus negocios.
+
+La configuración agrega distribuciones del salón con selección de mesas, mesas habilitadas y mínimo/máximo de personas por mesa. Cada horario de llegada puede estar vinculado a una distribución. El editor permite generar un turno semanal con rango de llegadas, intervalo y permanencia; también conserva fechas específicas. El plano puede editarse arrastrando mesas o con el teclado. Los turnos sin distribución conservan el comportamiento anterior: usan todas las mesas habilitadas. No se sobrescriben mesas ni configuraciones ya guardadas en Pulpo.
+
+La reserva pública pide fecha, cantidad, horario y sector opcional; el backend asigna la mesa disponible de menor capacidad suficiente. La transacción protege solapamientos también entre turnos y días contiguos. Los límites públicos incluyen activar/desactivar, anticipación mínima/máxima, máximo de personas y política, cuya aceptación verifica el backend. Los locales por cupos siguen usando la capacidad configurada.
+
+El Dashboard permite cargar reservas manuales para horarios configurados, registrar llegadas sin reserva en el horario actual con permanencia, cambiar de mesa comprobando capacidad y ocupación y manejar la lista de espera por fecha. La lista de espera es privada, no ocupa inventario ni genera notificaciones automáticas; convertirla en reserva requiere cargar la reserva y cerrar la entrada. No se interpretan estados como envío efectivo de mensajes. Las modificaciones de disponibilidad protegen mesas y distribuciones que tienen reservas futuras.
+
+Pendiente de completar la referencia Woki: combinaciones de mesas, recurrencias avanzadas, permisos de personal diferenciados, automatizaciones de contacto y reglas que no fueron observadas. La permanencia planificada sigue siendo el intervalo de inventario; los cambios de duración y mesas combinadas todavía no están incluidos. No se afirma equivalencia completa con Woki.
+
+Verificación de esta entrega: pruebas de distribuciones, asignación automática, mínimos, límites públicos, validación y regresiones; compilación de producción y comprobación de acceso HTTP. El endpoint público existente de Pulpo respondió 200 desde Firestore antes de publicar, conservando su configuración guardada; no se crearon reservas reales durante la comprobación.

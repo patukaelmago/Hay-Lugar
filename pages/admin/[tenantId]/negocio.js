@@ -1,0 +1,10 @@
+import {useEffect,useState} from 'react';
+import PrivatePanel from '../../../components/PrivatePanel';
+export {getServerSideProps} from '../[tenantId]';
+function Settings({tenantId,user}){
+ const [form,setForm]=useState(null),[error,setError]=useState(''),[notice,setNotice]=useState(''),[busy,setBusy]=useState(false);
+ useEffect(()=>{let stopped=false;fetch(`/api/tenants/${tenantId}/business`).then(async res=>{const result=await res.json();if(!res.ok)throw new Error(result.error);if(!stopped)setForm(result);}).catch(err=>{if(!stopped)setError(err.message);});return()=>{stopped=true;};},[tenantId]);
+ async function save(event){event.preventDefault();setBusy(true);setError('');setNotice('');try{const token=await user.getIdToken();const res=await fetch(`/api/tenants/${tenantId}/business`,{method:'PUT',headers:{Authorization:`Bearer ${token}`,'Content-Type':'application/json'},body:JSON.stringify(form)});const result=await res.json();if(!res.ok)throw new Error(result.error);setNotice('Datos guardados.');}catch(err){setError(err.message);}finally{setBusy(false);}}
+ return <>{!form&&!error&&<p role="status">Cargando datos…</p>}{form&&<form onSubmit={save} className="box"><fieldset disabled={busy}>{[['name','Nombre del negocio',100],['address','Dirección',300],['phone','Teléfono de contacto',40]].map(([key,label,max])=><label className="field" key={key}>{label}<input required={key==='name'} maxLength={max} value={form[key]} onChange={e=>{setForm({...form,[key]:e.target.value});setNotice('');}}/></label>)}<p>Link público: <a href={`/reservar/${tenantId}`} target="_blank" rel="noopener noreferrer">/reservar/{tenantId}</a></p><button>{busy?'Guardando…':'Guardar datos'}</button></fieldset></form>}{error&&<p className="error" role="alert">{error}</p>}{notice&&<p className="success" role="status">{notice}</p>}</>;
+}
+export default function Business({tenantId}){return <PrivatePanel tenantId={tenantId} title="Datos del negocio">{user=><Settings tenantId={tenantId} user={user}/>}</PrivatePanel>;}

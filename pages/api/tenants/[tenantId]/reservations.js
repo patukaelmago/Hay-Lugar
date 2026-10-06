@@ -1,3 +1,4 @@
+import { withinBookingWindow, validateBookingSettings } from '../../../../lib/booking-settings.mjs';
 import { createHash } from 'node:crypto';
 import { FieldValue } from 'firebase-admin/firestore';
 import { services, authorize } from '../../../../lib/server';
@@ -41,7 +42,8 @@ export default async function handler(req, res) {
       });
       return res.status(200).json({ cancelled: true });
     }
-    const { db } = services();
+    const manual = req.method === 'POST' && req.body?.manual === true;
+    const { db } = manual ? await authorize(req, tenant) : services();
     const settingsRef = db.doc(`tenants/${tenant}/settings/availability`);
     if (req.method === 'GET') {
       const date = req.query.date, partySize = Number(req.query.partySize);
@@ -51,12 +53,12 @@ export default async function handler(req, res) {
       const settings = validateAvailability(snapshot.data());
       const occupancy = await db.getAll(...nearbyDates(date).map(d => db.doc(`tenants/${tenant}/occupancy/${d}`)));
       const entries = occupancy.flatMap(doc => doc.data()?.entries || []);
-      return res.status(200).json({ mode: settings.mode, configured: true, slots: slotsForDate(settings, date).filter(slot => slot.start > Date.now()).map(slot => ({ time: slot.time, ...remaining(settings, slot, entries, partySize) })) });
+      return res.status(200).json({ mode: settings.mode, booking: validateBookingSettings(settings.booking), sectors: [...new Set(settings.tables.filter(table => table.enabled !== false && table.sector).map(table => table.sector))], configured: true, slots: slotsForDate(settings, date).filter(slot => withinBookingWindow(settings, slot, partySize)).map(slot => ({ time: slot.time, ...remaining(settings, slot, entries, partySize) })) });
     }
     let input;
     try { input = validateRequest(req.body); } catch (err) { throw failure(err.message); }
     const { requestId, ...details } = input;
-    const requestHash = createHash('sha256').update(JSON.stringify(details)).digest('hex');
+    const requestHash = createHash('sha256').update(JSON.stringify({ ...details, manual, walkIn: manual && req.body.walkIn === true })).digest('hex');
     const ref = db.doc(`tenants/${tenant}/reservations/${requestId}`);
     const result = await db.runTransaction(async tx => {
       const existing = await tx.get(ref);
@@ -68,21 +70,29 @@ export default async function handler(req, res) {
       const snapshot = await tx.get(settingsRef);
       if (!snapshot.exists) throw failure('El negocio todavía no habilitó sus reservas.', 409);
       const settings = validateAvailability(snapshot.data());
-      const slot = slotsForDate(settings, input.date).find(s => s.time === input.time);
-      if (!slot || slot.start <= Date.now()) throw failure('Este horario ya no está disponible.', 409);
+      if (!manual && settings.booking.policy && (req.body.policyAccepted !== true || req.body.acceptedPolicy !== settings.booking.policy)) throw failure('Leé y aceptá la política vigente del negocio.', 409);
+      let slot = slotsForDate(settings, input.date).find(s => s.time === input.time);
+      if (manual && req.body.walkIn === true) {
+        const duration = req.body.duration ?? 90;
+        if (!Number.isInteger(duration) || duration < 15 || duration > 720) throw failure('Revisá la permanencia.');
+        const start = Date.parse(`${input.date}T${input.time}:00-03:00`);
+        if (Math.abs(start - Date.now()) > 15 * 60000) throw failure('Una llegada sin reserva debe registrarse en el horario actual.');
+        slot = { start, end: start + duration * 60000, time: input.time };
+      }
+      if (!slot || (!manual && !withinBookingWindow(settings, slot, input.partySize)) || (manual && req.body.walkIn !== true && slot.start <= Date.now())) throw failure('Este horario ya no está disponible.', 409);
       const refs = nearbyDates(input.date).map(date => db.doc(`tenants/${tenant}/occupancy/${date}`));
       const occupancy = await tx.getAll(...refs);
       const entries = occupancy.flatMap(doc => doc.data()?.entries || []);
-      const available = remaining(settings, slot, entries, input.partySize);
-      if (!available.available || (settings.mode === 'tables' && !available.tables.some(t => t.name === input.table))) throw failure('El lugar acaba de ocuparse. Elegí otro horario o mesa.', 409);
-      const table = settings.mode === 'tables' ? input.table : null;
+      const available = remaining(settings, slot, entries, input.partySize, input.sector);
+      if (!available.available || (settings.mode === 'tables' && input.table && !available.tables.some(t => t.name === input.table))) throw failure('El lugar acaba de ocuparse. Elegí otro horario o mesa.', 409);
+      const table = settings.mode === 'tables' ? (input.table || available.tables[0].name) : null;
       const current = occupancy[1].data()?.entries || [];
       const clientRef = db.doc(`tenants/${tenant}/clients/${clientIdFor(input.email)}`);
       const client = await tx.get(clientRef);
       tx.set(clientRef, { ...profileForBooking(client.data(), details), updatedAt: FieldValue.serverTimestamp() }, { merge: true });
       // Each booking reads the adjacent days, so transactions also protect midnight overlaps.
       tx.set(refs[1], { entries: [...current, { id: ref.id, start: slot.start, end: slot.end, partySize: input.partySize, table }] });
-      tx.set(ref, { ...details, table, start: slot.start, end: slot.end, status: 'confirmed', requestHash, createdAt: FieldValue.serverTimestamp() });
+      tx.set(ref, { ...details, table, start: slot.start, end: slot.end, status: 'confirmed', layoutId: slot.layoutId || null, source: manual ? (req.body.walkIn === true ? 'walkin' : 'manual') : 'link', serviceState: manual && req.body.walkIn === true ? 'arrived' : 'waiting', requestHash, createdAt: FieldValue.serverTimestamp() });
       return confirmation(ref.id, { ...details, table });
     });
     return res.status(200).json({ reservation: result });

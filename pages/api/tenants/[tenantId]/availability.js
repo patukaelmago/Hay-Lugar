@@ -2,7 +2,7 @@ import { authorize } from '../../../../lib/server';
 import { validateAvailability } from '../../../../lib/availability.mjs';
 import { initialAvailability } from '../../../../lib/initial-availability.mjs';
 import { FieldValue } from 'firebase-admin/firestore';
-import { argentinaToday, remaining } from '../../../../lib/reservations.mjs';
+import { argentinaToday, nearbyDates, remaining } from '../../../../lib/reservations.mjs';
 
 export default async function handler(req, res) {
   res.setHeader('Cache-Control', 'no-store');
@@ -20,11 +20,12 @@ export default async function handler(req, res) {
     const revision = await db.runTransaction(async tx => {
       const snapshot = await tx.get(ref);
       if ((snapshot.updateTime ? `${snapshot.updateTime.seconds}:${snapshot.updateTime.nanoseconds}` : null) !== req.body.revision) throw Object.assign(new Error('Otra persona modificó la configuración. Recargá antes de guardar.'), { status: 409 });
-      const reservations = await tx.get(db.collection(`tenants/${req.query.tenantId}/reservations`).where('date', '>=', argentinaToday()));
+      const reservations = await tx.get(db.collection(`tenants/${req.query.tenantId}/reservations`).where('date', '>=', nearbyDates(argentinaToday())[0]));
       const active = reservations.docs.map(doc => doc.data()).filter(data => data.status === 'confirmed' && data.end > Date.now());
       const previous = snapshot.data();
       if (active.length && previous?.mode !== availability.mode) throw Object.assign(new Error('Hay reservas futuras. Cancelalas antes de cambiar la modalidad.'), { status: 409 });
-      if (availability.mode === 'tables' && active.some(data => !availability.tables.some(table => table.name === data.table && table.seats >= data.partySize))) throw Object.assign(new Error('Una mesa tiene reservas futuras. Conservá su nombre y capacidad o cancelá esas reservas.'), { status: 409 });
+      if (availability.mode === 'tables' && active.some(data => !availability.tables.some(table => table.name === data.table && table.seats >= data.partySize && table.enabled !== false && table.minPartySize <= data.partySize))) throw Object.assign(new Error('Una mesa tiene reservas futuras. Conservá su nombre y capacidad o cancelá esas reservas.'), { status: 409 });
+      if (active.some(data => data.layoutId && !availability.layouts.some(layout => layout.id === data.layoutId && layout.enabled && layout.tables.includes(data.table)))) throw Object.assign(new Error('Una distribución tiene reservas futuras. Conservá sus mesas habilitadas hasta finalizar esas reservas.'), { status: 409 });
       if (availability.mode === 'capacity' && active.some(data => !remaining(availability, { start: data.start, end: data.end }, active, 0).available)) throw Object.assign(new Error('El cupo nuevo es menor que las reservas ya confirmadas.'), { status: 409 });
       tx.set(ref, { ...availability, updatedBy: uid, updatedAt: FieldValue.serverTimestamp() });
       return true;
