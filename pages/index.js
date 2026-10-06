@@ -14,8 +14,8 @@ export async function getStaticProps() {
 export default function Home({ styles, loginScript, markup }) {
   return <>
     <Head>
-      <link rel="icon" type="image/png" href="/favicon.png" />
-      <link rel="apple-touch-icon" href="/favicon.png" />
+      <link rel="icon" type="image/jpeg" href="/favicon.jpg" />
+      <link rel="apple-touch-icon" href="/favicon.jpg" />
       <title>Ingresar · Hay Lugar</title>
       <meta name="viewport" content="width=device-width, initial-scale=1" />
       <meta name="theme-color" content="#faf6eb" />
