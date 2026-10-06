@@ -38,3 +38,9 @@ El cliente elige fecha, cantidad de personas, horario y mesa (si corresponde), y
 Las fechas especiales reemplazan los horarios semanales de ese día; los cierres tienen prioridad. La ocupación usa intervalos de duración con zona horaria argentina y comprueba también los días contiguos. Transacciones de Firestore comprueban disponibilidad al confirmar, y el identificador de solicitud permite reintentar sin duplicar la reserva. Cambiar de modalidad o eliminar mesas con reservas futuras está bloqueado; reducir cupos tampoco puede dejar reservas confirmadas por encima de la capacidad.
 
 Panel de reservas: `/admin/{tenantId}/reservas`, con consulta por fecha y cancelación que libera la ocupación. La configuración de acceso privado sigue siendo superadmin y `allowedEmails` por tenant. Las reservas no crean sesión Google para el cliente. No hay pagos, recordatorios ni lista de espera en esta entrega.
+
+## Clientes
+
+`/admin/{tenantId}/clientes` muestra fichas por correo electrónico, contacto, contadores de reservas, historial y notas internas. Las fichas se crean al confirmar nuevas reservas; las reservas repetidas con el mismo correo comparten ficha. La creación de la reserva y la actualización de la ficha forman una sola transacción, y los reintentos no vuelven a incrementar contadores. Las cancelaciones actualizan los contadores en la misma transacción que libera la ocupación.
+
+Las notas son privadas y solo accesibles mediante la API autenticada del tenant. Una nueva reserva conserva las notas y los datos de contacto originales de la ficha. El guardado de notas tiene revisión para evitar sobreescrituras entre sesiones. La lista carga 50 clientes por página; la búsqueda por nombre, correo o teléfono se aplica a los clientes cargados. El historial muestra confirmadas y canceladas, sin inferir asistencia real. Las reservas anteriores a esta entrega siguen en el panel de reservas, pero no se migran automáticamente a fichas.

@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto';
 import { FieldValue } from 'firebase-admin/firestore';
 import { services, authorize } from '../../../../lib/server';
+import { clientIdFor, profileForBooking, profileAfterCancel } from '../../../../lib/clients.mjs';
 import { validateAvailability } from '../../../../lib/availability.mjs';
 import { argentinaToday, validDate, validateRequest, slotsForDate, remaining, nearbyDates } from '../../../../lib/reservations.mjs';
 const failure = (message, status = 400) => Object.assign(new Error(message), { status });
@@ -31,6 +32,9 @@ export default async function handler(req, res) {
         if (data.status === 'cancelled') return;
         const occupancyRef = db.doc(`tenants/${tenant}/occupancy/${data.date}`);
         const occupancy = await tx.get(occupancyRef);
+        const clientRef = db.doc(`tenants/${tenant}/clients/${clientIdFor(data.email)}`);
+        const client = await tx.get(clientRef);
+        if (client.exists) tx.update(clientRef, { ...profileAfterCancel(client.data()), updatedAt: FieldValue.serverTimestamp() });
         tx.set(occupancyRef, { entries: (occupancy.data()?.entries || []).filter(e => e.id !== ref.id) });
         tx.update(ref, { status: 'cancelled', cancelledAt: FieldValue.serverTimestamp() });
       });
@@ -72,6 +76,9 @@ export default async function handler(req, res) {
       if (!available.available || (settings.mode === 'tables' && !available.tables.some(t => t.name === input.table))) throw failure('El lugar acaba de ocuparse. Elegí otro horario o mesa.', 409);
       const table = settings.mode === 'tables' ? input.table : null;
       const current = occupancy[1].data()?.entries || [];
+      const clientRef = db.doc(`tenants/${tenant}/clients/${clientIdFor(input.email)}`);
+      const client = await tx.get(clientRef);
+      tx.set(clientRef, { ...profileForBooking(client.data(), details), updatedAt: FieldValue.serverTimestamp() }, { merge: true });
       // Each booking reads the adjacent days, so transactions also protect midnight overlaps.
       tx.set(refs[1], { entries: [...current, { id: ref.id, start: slot.start, end: slot.end, partySize: input.partySize, table }] });
       tx.set(ref, { ...details, table, start: slot.start, end: slot.end, status: 'confirmed', requestHash, createdAt: FieldValue.serverTimestamp() });
